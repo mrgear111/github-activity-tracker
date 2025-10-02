@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
-	"gofr.dev/pkg/gofr"
+	"github.com/gin-gonic/gin"
 
 	"github-activity-tracker/DB"
 	"github-activity-tracker/models"
@@ -46,16 +47,24 @@ func main() {
 	DB.InitDB()
 	db := DB.GetDB()
 
-	app := gofr.New()
+	// Get port from environment or use default
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
-	app.GET("/greet", func(ctx *gofr.Context) (any, error) {
-		return "Hello World!", nil
+	// Create Gin router
+	r := gin.Default()
+
+	r.GET("/greet", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "Hello World!"})
 	})
 
-	app.POST("/users", func(ctx *gofr.Context) (any, error) {
+	r.POST("/users", func(c *gin.Context) {
 		var user models.User
-		if err := ctx.Bind(&user); err != nil {
-			return nil, err
+		if err := c.ShouldBindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 		db.Create(&user)
 
@@ -72,10 +81,10 @@ func main() {
 				}
 			}
 		}
-		return user, nil
+		c.JSON(http.StatusCreated, user)
 	})
 
-	app.GET("/leaderboard", func(ctx *gofr.Context) (any, error) {
+	r.GET("/leaderboard", func(c *gin.Context) {
 		var users []models.User
 		db.Preload("PRs.Month").Find(&users)
 
@@ -93,10 +102,10 @@ func main() {
 				"pr_count":    prCount,
 			})
 		}
-		return leaderboard, nil
+		c.JSON(http.StatusOK, leaderboard)
 	})
 
-	app.GET("/admin-dashboard", func(ctx *gofr.Context) (any, error) {
+	r.GET("/admin-dashboard", func(c *gin.Context) {
 		var users []models.User
 		db.Preload("PRs.Month").Find(&users)
 
@@ -114,16 +123,17 @@ func main() {
 				"prs":         prs,
 			})
 		}
-		return dashboard, nil
+		c.JSON(http.StatusOK, dashboard)
 	})
 
-	app.POST("/track-prs", func(ctx *gofr.Context) (any, error) {
+	r.POST("/track-prs", func(c *gin.Context) {
 		var req struct {
 			Usernames []string `json:"usernames"`
 			MonthName string   `json:"month_name"`
 		}
-		if err := ctx.Bind(&req); err != nil {
-			return nil, err
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 
 		var results []map[string]interface{}
@@ -176,8 +186,9 @@ func main() {
 				"prs":      prList,
 			})
 		}
-		return results, nil
+		c.JSON(http.StatusOK, results)
 	})
 
-	app.Run()
+	fmt.Printf("Server starting on port %s\n", port)
+	r.Run(":" + port)
 }
