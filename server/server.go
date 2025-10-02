@@ -61,6 +61,10 @@ func main() {
 	})
 
 	r.POST("/users", func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
 		var user models.User
 		if err := c.ShouldBindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -85,6 +89,10 @@ func main() {
 	})
 
 	r.GET("/leaderboard", func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
 		var users []models.User
 		db.Preload("PRs.Month").Find(&users)
 
@@ -106,6 +114,10 @@ func main() {
 	})
 
 	r.GET("/admin-dashboard", func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
 		var users []models.User
 		db.Preload("PRs.Month").Find(&users)
 
@@ -127,6 +139,10 @@ func main() {
 	})
 
 	r.POST("/track-prs", func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
 		var req struct {
 			Usernames []string `json:"usernames"`
 			MonthName string   `json:"month_name"`
