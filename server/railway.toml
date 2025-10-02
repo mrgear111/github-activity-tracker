@@ -1,0 +1,12 @@
+[build]
+  builder = "nixpacks"
+
+[deploy]
+  healthcheckPath = "/greet"
+  healthcheckTimeout = 300
+  restartPolicyType = "on_failure"
+  restartPolicyMaxRetries = 3
+
+[env]
+  # Railway will automatically provide DATABASE_URL if you connect a PostgreSQL service
+  # No need to set it manually here
